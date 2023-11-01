@@ -158,10 +158,10 @@ class ConstructBlockStrategy:
         return mask_spans
 
     def make_masked_data(self, tokens, loss_masks, attention_mask, block_spans, rng, task='bert'):
-        position_ids = np.arange(len(tokens), dtype=np.long)
+        position_ids = np.arange(len(tokens), dtype=np.int64)
         targets = copy.deepcopy(tokens)
         mask_id = self.tokenizer.get_command('MASK').Id
-        mlm_masks = np.zeros(len(tokens), dtype=np.long)
+        mlm_masks = np.zeros(len(tokens), dtype=np.int64)
         for start, end in block_spans:
             for idx in range(start, end):
                 tokens[idx] = mask_id
@@ -171,7 +171,7 @@ class ConstructBlockStrategy:
 
     def make_block_data(self, tokens, loss_masks, attention_mask, block_spans, rng, task='bert'):
         text_length = len(tokens)
-        position_ids = np.ones(len(tokens), dtype=np.long)
+        position_ids = np.ones(len(tokens), dtype=np.int64)
         for start, end in block_spans:
             position_ids[start + 1: end] = 0
         position_ids = np.cumsum(position_ids) - 1
@@ -206,7 +206,7 @@ class ConstructBlockStrategy:
             else:
                 target_position_ids.append([self.max_seq_length] * (end - start + 1))
             if self.block_position_encoding:
-                target_block_position_ids.append(np.arange(1, end - start + 2, dtype=np.long))
+                target_block_position_ids.append(np.arange(1, end - start + 2, dtype=np.int64))
             else:
                 target_block_position_ids.append([1] * (end - start + 1))
         block_spans.sort(key=lambda x: x[0])
@@ -239,7 +239,7 @@ class ConstructBlockStrategy:
             raise RuntimeError
         if self.encoder_decoder:
             target_tokens = target_tokens + [self.tokenizer.get_command('eop').Id]
-            loss_masks = np.ones(len(target_tokens), dtype=np.long)
+            loss_masks = np.ones(len(target_tokens), dtype=np.int64)
             return source_tokens, target_tokens, loss_masks
         else:
             tokens = np.concatenate(source_tokens + target_tokens)
@@ -256,11 +256,11 @@ class ConstructBlockStrategy:
                 for pos in mask_pos:
                     tokens[pos] = self.tokenizer.get_command('dBLOCK').Id
             targets = np.concatenate(source_tokens + targets)
-            loss_masks = np.ones(len(tokens), dtype=np.long)
+            loss_masks = np.ones(len(tokens), dtype=np.int64)
             loss_masks[:source_length] = 0
             position_ids = np.concatenate(source_position_ids + target_position_ids)
             block_position_ids = np.concatenate(
-                [np.zeros(source_length, dtype=np.long)] + target_block_position_ids)
+                [np.zeros(source_length, dtype=np.int64)] + target_block_position_ids)
             position_ids = np.stack([position_ids, block_position_ids], axis=0)
             if attention_mask is not None:
                 return tokens, targets, loss_masks, position_ids
@@ -416,19 +416,19 @@ class ConstructBlockStrategy:
                         source_tokens, [self.generation_mask, self.tokenizer.get_command('sop').Id],
                         target_tokens[:-1]))
                     targets = np.concatenate((source_tokens, [self.generation_mask], target_tokens))
-                    loss_masks = np.concatenate((np.zeros(len(source_tokens) + 1, dtype=np.long), target_masks))
+                    loss_masks = np.concatenate((np.zeros(len(source_tokens) + 1, dtype=np.int64), target_masks))
                     token_batch.append(tokens)
                     target_batch.append(targets)
                     loss_mask_batch.append(loss_masks)
-                    position_ids = np.arange(len(source_tokens) + len(target_tokens) + 1, dtype=np.long)
+                    position_ids = np.arange(len(source_tokens) + len(target_tokens) + 1, dtype=np.int64)
                     position_ids[len(source_tokens) + 1:] = len(source_tokens)
                     if self.block_position_encoding:
                         block_position_ids = np.concatenate(
-                            (np.zeros(len(source_tokens), dtype=np.long),
-                             np.arange(len(target_tokens) + 1, dtype=np.long)))
+                            (np.zeros(len(source_tokens), dtype=np.int64),
+                             np.arange(len(target_tokens) + 1, dtype=np.int64)))
                     else:
-                        block_position_ids = np.concatenate((np.zeros(len(source_tokens) + 1, dtype=np.long),
-                                                             np.ones(len(target_tokens) + 1, dtype=np.long)))
+                        block_position_ids = np.concatenate((np.zeros(len(source_tokens) + 1, dtype=np.int64),
+                                                             np.ones(len(target_tokens) + 1, dtype=np.int64)))
                     position_id_batch.append(np.stack([position_ids, block_position_ids], axis=0))
                 else:
                     tokens, targets, loss_masks, position_ids = self.generate_blank_data(sample, [generation_length],
@@ -461,14 +461,14 @@ class ConstructBlockStrategy:
         seq_lengths = list(map(len, token_batch))
         if seq_lengths.count(seq_lengths[0]) != len(seq_lengths):
             max_length = max(seq_lengths)
-            token_batch = [np.concatenate((tokens, np.zeros(max_length - len(tokens), dtype=np.long))) for tokens in
+            token_batch = [np.concatenate((tokens, np.zeros(max_length - len(tokens), dtype=np.int64))) for tokens in
                            token_batch]
-            target_batch = [np.concatenate((targets, np.zeros(max_length - len(targets), dtype=np.long))) for
+            target_batch = [np.concatenate((targets, np.zeros(max_length - len(targets), dtype=np.int64))) for
                             targets in
                             target_batch]
-            loss_mask_batch = [np.concatenate((loss_masks, np.zeros(max_length - len(loss_masks), dtype=np.long)))
+            loss_mask_batch = [np.concatenate((loss_masks, np.zeros(max_length - len(loss_masks), dtype=np.int64)))
                                for loss_masks in loss_mask_batch]
             position_id_batch = [
-                np.concatenate((position_ids, np.zeros((2, max_length - position_ids.shape[1]), dtype=np.long)),
+                np.concatenate((position_ids, np.zeros((2, max_length - position_ids.shape[1]), dtype=np.int64)),
                                axis=1) for position_ids in position_id_batch]
         return token_batch, target_batch, loss_mask_batch, position_id_batch

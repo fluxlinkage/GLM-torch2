@@ -1,3 +1,25 @@
+# 新环境适配
+
+（部分？）解决了原版[GLM](https://github.com/THUDM/GLM)模型不能在包括PyTorch 2的新环境下正常运行的问题。
+
+## 主要改动
+
+- numpy.long全部替换为numpy.int64，适配numpy 1.24及以上版本。
+- from torch._six import inf改为from torch import inf，适配PyTorch 2。
+- 不再依赖[APEX](https://github.com/NVIDIA/apex)，改用PyTorch对应的原生方法，因为测试显示使用APEX相比PyTorch 2原生方法并不能提速或节约显存。
+- 修复读取语料中的一处疑似BUG。
+
+## 踩坑记录
+
+- 训练时内存（不是显存）占用会随着DataLoader的num_workers参数增大而增大，这是一个pytorch的[BUG](https://github.com/pytorch/pytorch/issues/13246)。一般情况下这问题不严重，但是在Zero开CPU Offload的情况下必须考虑。实际测试中，单卡，Zero-2+CPU Offload，num_workers=2时内存占用可达num_workers=0时的180%！爆内存的同学可以检查一下num_workers是否设置成0了（默认是2）。
+
+## 一点想法
+
+GLM这个模型优势在于多功能，既能遣词造句也能续写文章，如果利用好在AI辅助写作等领域会有优势。比如可以搞个Office插件，“遣词”、“造句”、“续写”三个按钮，“遣词”在光标处插入[MASK]、“造句”在光标处插入[sMASK]、“续写”在光标处插入[gMASK]。GLM就很适合完成这个任务。
+可惜现在LLM的热点都在聊天。希望[THUDM](https://github.com/THUDM)能推出更强的单卡能跑的GLM基础模型（或者出个[GLM-2B-Chinese](https://github.com/THUDM/GLM/issues/26)也行啊，这个尺寸训练起来方便，也适合移动设备推理）。
+
+（以下是[GLM](https://github.com/THUDM/GLM)项目的原始说明）
+---
 # GLM
 
 GLM is a General Language Model pretrained with an autoregressive blank-filling objective and can be finetuned on

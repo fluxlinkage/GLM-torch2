@@ -7,3 +7,5 @@ runs
 settings.json
 .gitignore
 .vscode/
+scripts_test/
+config_test/

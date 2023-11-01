@@ -135,8 +135,12 @@ class DataReader:
                             task_queue.put(row)
                     else:
                         items = json.load(file)
-                        for item in items["RECORDS"]:
-                            task_queue.put(item)
+                        if hasattr(items,"RECORDS"):
+                            for item in items["RECORDS"]:
+                                task_queue.put(item)
+                        else:
+                            for item in items:
+                                task_queue.put(item)
             print_rank_0("Read input complete")
             for i in range(len(processes)):
                 task_queue.put('STOP')

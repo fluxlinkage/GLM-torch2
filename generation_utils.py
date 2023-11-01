@@ -18,6 +18,7 @@ from collections import UserDict
 from typing import Optional, Tuple, List, Iterable
 
 import torch
+import torch.nn.functional as F
 
 PROCESS_INPUTS_DOCSTRING = r"""
     Args:

@@ -1,6 +1,7 @@
 import deepspeed
 import torch
-from apex.optimizers import FusedAdam as Adam
+#from apex.optimizers import FusedAdam as Adam
+from torch.optim import AdamW as Adam
 from torch import distributed as dist
 
 import mpu
